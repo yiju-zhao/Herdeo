@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtemp,mkdir,writeFile,rm} from 'node:fs/promises';
+import {mkdtemp,mkdir,writeFile,rm,utimes} from 'node:fs/promises';
 import {join} from 'node:path';
 import {configSchema} from '../server/config.js';
 import {saveTuiSession,resolveLiveTuiSession,loadConversationTuiHistory,type TuiSession} from '../server/tui-session.js';
@@ -36,6 +36,8 @@ test('resume history combines native generations by item ID without importing an
   const unrelated={...f.old,key:'unrelated',nativeSessionId:'different'};await saveTuiSession(f.cfg,unrelated);
   for(const [state,items]of [[f.old,[{type:'user_message',id:'u1',text:'original'},{type:'assistant_message',id:'a1',text:'original reply'}]],[f.fresh,[{type:'assistant_message',id:'a1',text:'original reply'},{type:'assistant_message',id:'a2',text:'resumed reply'}]],[unrelated,[{type:'assistant_message',id:'wrong',text:'must not appear'}]]]as const){
    const dir=join(f.cfg.paseoHome,'herdr-bridge/tui-data',state.key);await mkdir(dir,{recursive:true});await writeFile(join(dir,'snapshot.json'),JSON.stringify({state,nativeSessionId:state.nativeSessionId,items}));
+   // Linux can coalesce these writes to exactly the same filesystem timestamp.
+   await utimes(join(dir,'snapshot.json'),new Date('2026-10-15T00:00:00Z'),new Date('2026-10-15T00:00:00Z'));
   }
   assert.deepEqual((await loadConversationTuiHistory(f.cfg,f.fresh)).map(i=>i.id),['u1','a1','a2']);
  }finally{await rm(f.root,{recursive:true,force:true});}

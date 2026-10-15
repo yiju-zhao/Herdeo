@@ -60,10 +60,26 @@ export async function loadConversationTuiHistory(cfg:BridgeConfig,state:TuiSessi
   if(candidate.key!==state.key&&!sameTuiConversation(state,candidate))continue;
   const history=await loadTuiHistory(cfg,candidate);
   let time=0;try{time=(await stat(join(cfg.paseoHome,'herdr-bridge/tui-data',candidate.key,'snapshot.json'))).mtimeMs;}catch{}
-  snapshots.push({time,items:history.items});
+  const started=Date.parse(candidate.startedAt??'');
+  snapshots.push({time:Number.isFinite(started)?started:time,items:history.items});
  }
- const items=new Map<string,ProviderTimelineItem>();for(const snapshot of snapshots.sort((a,b)=>a.time-b.time))for(const item of snapshot.items)items.set(item.id,item);
- return [...items.values()];
+ // Filesystems can give two generations the same mtime. Shared native item
+ // IDs anchor older prefixes before a replayed suffix regardless of read order.
+ type Node={item:ProviderTimelineItem;previous?:Node;next?:Node};
+ const items=new Map<string,Node>();let first:Node|undefined,last:Node|undefined;
+ for(const snapshot of snapshots.sort((a,b)=>a.time-b.time)){
+  let anchor:Node|undefined;
+  for(let i=snapshot.items.length-1;i>=0;i--){
+   const item=snapshot.items[i]!,existing=items.get(item.id);
+   if(existing){existing.item=item;anchor=existing;continue;}
+   const node:Node={item,previous:anchor?anchor.previous:last,next:anchor};items.set(item.id,node);
+   if(node.previous)node.previous.next=node;else first=node;
+   if(anchor)anchor.previous=node;else last=node;
+   anchor=node;
+  }
+ }
+ const merged:ProviderTimelineItem[]=[];for(let node=first;node;node=node.next)merged.push(node.item);
+ return merged;
 }
 export function tuiRequest(state:TuiSession,method:string,params:any={}){return new Promise<any>((done,reject)=>{
  const socket=createConnection(state.socket);const timeout=setTimeout(()=>{socket.destroy();reject(Error('Native terminal request timed out'));},15000);
