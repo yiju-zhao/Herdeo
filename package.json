@@ -10,7 +10,8 @@
   "type": "module",
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "release": "npm run typecheck && npm test && npm run build && node dist/scripts/release.js",
+    "release": "npm run check:version && npm run typecheck && npm test && npm run build && node dist/scripts/release.js",
+    "check:version": "node --import tsx scripts/check-version.ts",
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test test/*.test.ts",
     "dev": "npm run build && node --import tsx scripts/dev.ts",

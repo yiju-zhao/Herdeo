@@ -4,7 +4,7 @@
 
 Herdeo 把 Herdr 中启动的 Codex、Claude Code 和 Pi 会话接入 Paseo。终端和手机操作同一个原生进程与会话，使用 Paseo 的消息、工具卡片和授权组件展示交互。
 
-当前版本：**0.2.1**。
+当前版本：**0.2.1**。 <!-- x-herdeo-version -->
 
 ## 工作方式
 
@@ -174,7 +174,7 @@ npm test
 npm run build
 ```
 
-自动化测试需要 Python 3，用于真实 PTY 启动验证。当前有 **56 项回归测试**，覆盖原生界面、PID/session 绑定、Codex thread 路由、授权、流式历史、归档恢复、消息去重和只读诊断。
+自动化测试需要 Python 3，用于真实 PTY 启动验证。回归测试覆盖原生界面、PID/session 绑定、Codex thread 路由、授权、流式历史、归档恢复、消息去重、只读诊断和发布包完整性。
 
 真实环境验证还覆盖 Codex、Claude 与 Pi 的双向交互。真实账户验证与隔离回归测试分开进行；不会由 `npm test` 向模型服务发请求。
 
@@ -183,6 +183,35 @@ v0.2.1 已补充真实 Codex 验证：Herdr 启动后自动注册、双向消息
 `scripts/` 中保留了早期独立开发实例和手动验证脚本，部分依赖本地 `.dev/` 配置。不要把它们当作日常部署安装入口。
 
 ## 发布与升级
+
+正式发布见 [GitHub Releases](https://github.com/yiju-zhao/Herdeo/releases)，流水线见 [GitHub Actions](https://github.com/yiju-zhao/Herdeo/actions/workflows/release.yml)。
+
+版本由发布工作流根据合并到 `main` 的 Conventional Commits 自动计算：
+
+- `fix: ...` 升 patch，例如 `0.2.1 → 0.2.2`。
+- `feat: ...` 升 minor，例如 `0.2.1 → 0.3.0`。
+- `feat!: ...` 或 `BREAKING CHANGE:` 升 major。
+- `docs:`、`ci:`、`chore:` 本身不触发新版本。
+
+提交通过 macOS/Linux、Node 22/24 检查后，工作流自动更新 `package.json`、lockfile、CLI 版本、README 和 CHANGELOG，并以一次原子推送提交版本及 tag。随后在同一工作流中构建并验证压缩包，上传所有附件后发布草稿。只需将正常代码合并到 `main`，无需额外合并版本 PR。
+
+使用 GitHub 内置 token，仅版本和发布任务声明 `contents: write`，不改动仓库 PR 审批设置，也无需额外 PAT。受保护的 `main` 分支若禁止工作流提交版本，需要维护者另行调整发布流程；当前配置不会绕过分支保护。
+
+每个 Release 附有 `herdeo-<version>.tar.gz`、同名 `.sha256` 和 `release.json`。压缩包包含运行代码、源码和测试，不包含 Node.js、依赖目录、工具账户或机器配置。下载后可以校验：
+
+```bash
+shasum -a 256 -c herdeo-<version>.tar.gz.sha256
+```
+
+`main`、PR 和手动版本发布都会检查版本文件的一致性。重跑已发布的版本会核对内容并保留原附件。已有 tag 的发布可从 Actions 手动重试，或运行：
+
+```bash
+gh workflow run release.yml --ref main -f tag=vX.Y.Z
+```
+
+发布系统不会自动部署或重启用户机器，也不发布 npm 包。
+
+本地构建发布包：
 
 ```bash
 npm run release
