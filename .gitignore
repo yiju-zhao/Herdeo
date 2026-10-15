@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.dev/
+*.log
+.DS_Store
+/release.json
+.env
+.env.*
+!.env.example

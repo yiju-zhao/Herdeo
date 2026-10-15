@@ -1,0 +1,10 @@
+import { promisify } from 'node:util';
+import { execFile } from 'node:child_process';
+import { resolve, join } from 'node:path';
+import { readConfig } from '../server/config.js';
+import { transport } from '../server/herdr.js';
+const config = readConfig(join(resolve(import.meta.dirname, '..'), '.dev/bridge.json'));
+if (config.paseoUrl !== 'ws://127.0.0.1:6796/ws' || !config.paseoHome.includes('/hpb-') || config.herdr.some(x => !x.socket.includes('/sessions/bridge-development/'))) throw new Error('Stop targets only this project\'s isolated test instances.');
+await promisify(execFile)('paseo', ['daemon', 'stop', '--home', config.paseoHome], { timeout: 20000 });
+for (const host of config.herdr) await transport.request(host.socket, 'server.stop').catch(() => {});
+console.log('Stopped the isolated Paseo and Herdr test instances.');

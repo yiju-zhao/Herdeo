@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "CwdChanged": [{"hooks":[{"type":"command","command":"\"${HERDR_BRIDGE_NODE}\" \"${HERDR_BRIDGE_PACKAGE_ROOT}/dist/scripts/claude-tui-hook.js\"","timeout":2}]}],
+    "SessionStart": [{"hooks":[{"type":"command","command":"\"${HERDR_BRIDGE_NODE}\" \"${HERDR_BRIDGE_PACKAGE_ROOT}/dist/scripts/claude-tui-hook.js\"","timeout":2}]}],
+    "UserPromptSubmit": [{"hooks":[{"type":"command","command":"\"${HERDR_BRIDGE_NODE}\" \"${HERDR_BRIDGE_PACKAGE_ROOT}/dist/scripts/claude-tui-hook.js\"","timeout":2}]}],
+    "MessageDisplay": [{"hooks":[{"type":"command","command":"\"${HERDR_BRIDGE_NODE}\" \"${HERDR_BRIDGE_PACKAGE_ROOT}/dist/scripts/claude-tui-hook.js\"","timeout":2}]}],
+    "PreToolUse": [{"hooks":[{"type":"command","command":"\"${HERDR_BRIDGE_NODE}\" \"${HERDR_BRIDGE_PACKAGE_ROOT}/dist/scripts/claude-tui-hook.js\"","timeout":2}]}],
+    "PostToolUse": [{"hooks":[{"type":"command","command":"\"${HERDR_BRIDGE_NODE}\" \"${HERDR_BRIDGE_PACKAGE_ROOT}/dist/scripts/claude-tui-hook.js\"","timeout":2}]}],
+    "PostToolUseFailure": [{"hooks":[{"type":"command","command":"\"${HERDR_BRIDGE_NODE}\" \"${HERDR_BRIDGE_PACKAGE_ROOT}/dist/scripts/claude-tui-hook.js\"","timeout":2}]}],
+    "PermissionDenied": [{"hooks":[{"type":"command","command":"\"${HERDR_BRIDGE_NODE}\" \"${HERDR_BRIDGE_PACKAGE_ROOT}/dist/scripts/claude-tui-hook.js\"","timeout":2}]}],
+    "Stop": [{"hooks":[{"type":"command","command":"\"${HERDR_BRIDGE_NODE}\" \"${HERDR_BRIDGE_PACKAGE_ROOT}/dist/scripts/claude-tui-hook.js\"","timeout":2}]}],
+    "StopFailure": [{"hooks":[{"type":"command","command":"\"${HERDR_BRIDGE_NODE}\" \"${HERDR_BRIDGE_PACKAGE_ROOT}/dist/scripts/claude-tui-hook.js\"","timeout":2}]}],
+    "PostModelSwitch": [{"hooks":[{"type":"command","command":"\"${HERDR_BRIDGE_NODE}\" \"${HERDR_BRIDGE_PACKAGE_ROOT}/dist/scripts/claude-tui-hook.js\"","timeout":2}]}]
+  }
+}

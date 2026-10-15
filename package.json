@@ -1,0 +1,54 @@
+{
+  "name": "herdr-paseo-bridge",
+  "version": "0.2.1",
+  "description": "Use the same native Codex, Claude Code and Pi sessions in Herdr and Paseo.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yiju-zhao/Herdeo.git"
+  },
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "release": "npm run typecheck && npm test && npm run build && node dist/scripts/release.js",
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test test/*.test.ts",
+    "dev": "npm run build && node --import tsx scripts/dev.ts",
+    "watch": "node --import tsx scripts/watch.ts",
+    "status": "node --import tsx scripts/status.ts",
+    "smoke": "node --import tsx scripts/smoke.ts",
+    "native:start": "node --import tsx scripts/native-start.ts",
+    "native:check": "node --import tsx scripts/native-check.ts",
+    "native:upgrade": "npm run build && node --import tsx scripts/native-upgrade.ts",
+    "native:parity": "node --import tsx scripts/native-parity-check.ts",
+    "claude:wire": "npm run build && node --import tsx scripts/claude-wire-check.ts",
+    "claude:paseo": "node --import tsx scripts/claude-paseo-check.ts",
+    "claude:dev": "npm run build && node --import tsx scripts/claude-native-dev.ts",
+    "claude:check": "node --import tsx scripts/claude-native-check.ts",
+    "claude:reconnect": "node --import tsx scripts/claude-reconnect-check.ts",
+    "claude:permission": "node --import tsx scripts/claude-permission-check.ts",
+    "claude:start": "npm run build && node --import tsx scripts/claude-native-start.ts",
+    "pi:dev": "npm run build && node --import tsx scripts/pi-native-dev.ts",
+    "pi:start": "npm run build && node --import tsx scripts/pi-native-start.ts",
+    "pi:check": "node --import tsx scripts/pi-native-check.ts",
+    "pi:reconnect": "node --import tsx scripts/pi-reconnect-check.ts",
+    "pi:question": "node --import tsx scripts/pi-question-check.ts",
+    "create:check": "node --import tsx scripts/create-check.ts",
+    "dev:stop": "node --import tsx scripts/stop.ts",
+    "reconnect:check": "node --import tsx scripts/reconnect-check.ts"
+  },
+  "dependencies": {
+    "@getpaseo/client": "0.10.3",
+    "ws": "^8.22.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.3.246",
+    "@getpaseo/plugin": "0.10.3",
+    "@getpaseo/protocol": "0.10.3",
+    "@types/node": "^25.0.0",
+    "@types/ws": "^8.18.2",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0"
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "id": "herdr-bridge",
+  "description": "Herdeo — use the same native coding-agent session in Herdr and Paseo.",
+  "requirements": {
+    "paseo": ">=0.10.3"
+  }
+}
