@@ -108,6 +108,16 @@ claude --resume
 
 已打开且没有加载新 PATH 的 shell 可以使用 `~/.hb/bin/claude`、`~/.hb/bin/codex` 或 `~/.hb/bin/pi`。
 
+安装前就已存在的 Herdr shell 会保留旧 PATH，即使之后才运行 `claude`，也可能绕过桥接。`herdeo doctor` 会列出这些正在运行但未接入的 CLI。完成当前工作并退出 Claude 后，在同一个 shell 执行：
+
+```bash
+export PATH="$HOME/.hb/bin:$PATH"
+hash -r
+claude --resume
+```
+
+也可以新建 Herdr pane，或直接使用 `~/.hb/bin/claude --resume`。当前已经运行的普通 Claude 需要退出后恢复，才能加载桥接通道；加载 PATH 不会把运行中的进程事后转为桥接进程。
+
 也可以创建一个新的 Herdr workspace：
 
 ```bash

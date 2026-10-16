@@ -1,8 +1,9 @@
 import {readFile,readdir,access,constants} from 'node:fs/promises';
-import {join,basename} from 'node:path';
+import {join,basename,resolve} from 'node:path';
 import {hostname} from 'node:os';
 import type {PaseoAgent} from '@getpaseo/client';
 import type {BridgeConfig} from './config.js';
+import {inScope} from './config.js';
 import {transport} from './herdr.js';
 import {connectPaseo,includeKnownAgents} from './paseo.js';
 import {validateTuiSession,tuiRequest,type TuiSession} from './tui-session.js';
@@ -15,7 +16,7 @@ export interface SessionDiagnostic{
  key:string;provider:string;cwd:string;pane:string;nativeSessionId?:string;pid?:number;
  native:NativeStatus;channel:'ready'|'waiting'|'unavailable'|'unknown';
  activity:'working'|'permission'|'idle'|'unknown';view:'visible'|'archived'|'unregistered'|'rebound'|'unknown';
- agentId?:string;hint?:string;version?:string;startedAt?:string;endedAt?:string;
+ agentId?:string;hint?:string;version?:string;startedAt?:string;endedAt?:string;bridged?:boolean;
 }
 type Sources={herdr:typeof transport;connect:typeof connectPaseo;tui:typeof tuiRequest;codex?:typeof codexMetadata};
 function persistedKey(agent:PaseoAgent){try{return agent.persistence?.sessionId?.startsWith('plugin:')?JSON.parse(agent.persistence.sessionId.slice(7)).data?.key:undefined;}catch{return undefined;}}
@@ -85,6 +86,26 @@ export async function diagnose(cfg:BridgeConfig,sources:Sources={herdr:transport
    sessions.push(session);
   }catch{damaged++;}
  }));
+ // Old interactive shells retain their original PATH after installation. These
+ // real CLIs have no bridge metadata, so inspect Herdr's live inventory too.
+ for(const host of herdr.filter(h=>h.connected)){
+  let inventory:any[];try{inventory=(await sources.herdr.request<any>(host.socket,'agent.list')).agents;if(!Array.isArray(inventory))continue;}catch{continue;}
+  for(const agent of inventory){
+   const provider=agent.agent;
+   if(!['claude','codex','pi'].includes(provider)||typeof agent.cwd!=='string'||!inScope(cfg,agent.cwd)||typeof agent.pane_id!=='string')continue;
+   const vendor=agent.agent_session?.value;
+   if(typeof vendor==='string'&&vendor&&agents.some(a=>a.provider===provider&&resolve(a.cwd)===resolve(agent.cwd)&&a.persistence?.sessionId===vendor))continue;
+   try{
+    const processes=(await sources.herdr.request<any>(host.socket,'pane.process_info',{pane_id:agent.pane_id})).process_info.foreground_processes;
+    const pids=new Set(processes.map((p:any)=>p.pid));
+    if(work.some(({state,route})=>(state?.herdrSocket??route?.herdrSocket)===host.socket&&(state?.pane??route?.pane)===agent.pane_id&&pids.has(state?.cliPid??route?.pid)))continue;
+    const process=processes.find((p:any)=>(typeof p.name==='string'&&p.name.toLowerCase().includes(provider))||(typeof p.argv0==='string'&&basename(p.argv0)===provider));
+    if(!process)continue;
+    const resume=provider==='claude'?'claude --resume':'原生会话恢复命令';
+    sessions.push({key:`unbridged-${host.name}-${process.pid}`,provider,cwd:agent.cwd,pane:agent.pane_id,pid:process.pid,nativeSessionId:agent.agent_session?.value,native:'alive',channel:'unavailable',activity:agent.agent_status==='working'?'working':agent.agent_status==='blocked'?'permission':'idle',view:connected?'unregistered':'unknown',bridged:false,hint:`此 CLI 未接入 Herdeo，旧 shell 可能还在使用安装前的 PATH。待当前工作完成并退出 CLI 后，执行 export PATH="$HOME/.hb/bin:$PATH"; hash -r，再用 ${resume} 恢复。也可以新建 Herdr pane。`});
+   }catch{}
+  }
+ }
  return {product:productName,version,host:hostname(),endpoint:cfg.paseoUrl,release,herdr,cli,paseo:{connected,hint:paseoIssue},damagedRecords:damaged,sessions:sessions.sort((a,b)=>(b.startedAt??'').localeCompare(a.startedAt??''))};
 }
 export type DiagnosticReport=Awaited<ReturnType<typeof diagnose>>;
@@ -100,7 +121,7 @@ export function formatDiagnostics(report:DiagnosticReport,all=false){
   if(!all&&s.native==='exited'&&(seen.has(conversation)||s.view!=='visible')){hidden++;continue;}
   seen.add(conversation);
   lines.push(`\n${s.provider} · ${basename(s.cwd)} · ${s.pane} · ${s.key.slice(0,8)}`);
-  lines.push(`  CLI：${{alive:'运行中',exited:'已退出',unknown:'状态未知'}[s.native]}｜通道：${{ready:'就绪',waiting:'等待初始化',unavailable:'不可用',unknown:'未知'}[s.channel]}｜Paseo：${{visible:'可见',archived:'已归档',unregistered:'未注册',rebound:'已转到续接进程',unknown:'未知'}[s.view]}｜任务：${{working:'执行中',permission:'等待授权',idle:'空闲',unknown:'未知'}[s.activity]}`);
+  lines.push(`  CLI：${{alive:'运行中',exited:'已退出',unknown:'状态未知'}[s.native]}｜通道：${s.bridged===false?'未接入':{ready:'就绪',waiting:'等待初始化',unavailable:'不可用',unknown:'未知'}[s.channel]}｜Paseo：${{visible:'可见',archived:'已归档',unregistered:'未注册',rebound:'已转到续接进程',unknown:'未知'}[s.view]}｜任务：${{working:'执行中',permission:'等待授权',idle:'空闲',unknown:'未知'}[s.activity]}`);
   if(s.hint)lines.push('  '+s.hint);
  }
  if(!report.sessions.length)lines.push('\n当前没有桥接会话。在 Herdr 项目目录直接运行 claude / codex / pi。');
