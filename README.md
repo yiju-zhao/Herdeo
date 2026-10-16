@@ -4,7 +4,7 @@
 
 Herdeo 把 Herdr 中启动的 Codex、Claude Code 和 Pi 会话接入 Paseo。终端和手机操作同一个原生进程与会话，使用 Paseo 的消息、工具卡片和授权组件展示交互。
 
-当前版本：**0.2.1**。 <!-- x-herdeo-version -->
+当前版本：**0.2.2**。 <!-- x-herdeo-version -->
 
 ## 工作方式
 

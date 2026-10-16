@@ -1,6 +1,6 @@
 {
   "name": "herdr-paseo-bridge",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Use the same native Codex, Claude Code and Pi sessions in Herdr and Paseo.",
   "repository": {
     "type": "git",
