@@ -3,6 +3,7 @@ import { spawn } from 'node:child_process';
 import { join, resolve } from 'node:path';
 import { readConfig, inScope } from '../server/config.js';
 import { isDirectCliInvocation } from '../server/cli-invocation.js';
+import { nodeExecutable } from '../server/node-path.js';
 
 const kind = process.argv[2], args = process.argv.slice(3), config = readConfig();
 if (!['codex', 'claude', 'pi'].includes(kind ?? '')) throw Error('Choose codex, claude or pi');
@@ -16,10 +17,10 @@ const frontend=process.env.HERDR_BRIDGE_TERMINAL_UI??config.terminalFrontend;
 if(frontend!=='native'&&frontend!=='shared')throw Error('Unknown terminal frontend');
 if(managed&&!probe&&(kind==='claude'||kind==='pi')&&config.nativeTerminalProviders[kind]&&frontend==='native'){
   if(!inScope(config,process.cwd()))throw Error('This project is outside the configured bridge workspace roots');
-  command=process.execPath;argv=[join(config.packageRoot,'dist/scripts/tui-host.js'),kind,...args];
+  command=nodeExecutable;argv=[join(config.packageRoot,'dist/scripts/tui-host.js'),kind,...args];
 }else if (managed && !probe && (kind==='codex'||frontend==='shared')) {
   if (!inScope(config, process.cwd())) throw Error('This directory is outside the shared bridge workspace roots');
-  if (kind === 'codex') { command = process.execPath; argv = [join(config.packageRoot, 'dist/scripts/codex-terminal.js'), ...args]; }
+  if (kind === 'codex') { command = nodeExecutable; argv = [join(config.packageRoot, 'dist/scripts/codex-terminal.js'), ...args]; }
   else {
     const prompt: string[] = [];
     for (let i = 0; i < args.length; i++) {
@@ -37,7 +38,7 @@ if(managed&&!probe&&(kind==='claude'||kind==='pi')&&config.nativeTerminalProvide
     if (prompt.length) env.HERDR_BRIDGE_INITIAL_PROMPT = prompt.join(' ');
     env[kind === 'pi' ? 'HERDR_BRIDGE_PI_REGISTER' : 'HERDR_BRIDGE_CLAUDE_REGISTER'] = '1';
     env[kind === 'pi' ? 'HERDR_BRIDGE_PI_CWD' : 'HERDR_BRIDGE_CLAUDE_CWD'] = resolve(process.cwd());
-    command = process.execPath; argv = [join(config.packageRoot, 'dist/scripts/' + kind + '-host.js')];
+    command = nodeExecutable; argv = [join(config.packageRoot, 'dist/scripts/' + kind + '-host.js')];
   }
 }
 const child = spawn(command, argv, {stdio: 'inherit', env});

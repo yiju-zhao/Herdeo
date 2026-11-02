@@ -9,6 +9,7 @@ import { readJsonLines } from '../server/jsonl.js';
 import { configSchema } from '../server/config.js';
 import { connectPaseo } from '../server/paseo.js';
 import { transport } from '../server/herdr.js';
+import { nodeExecutable } from '../server/node-path.js';
 
 const execute=promisify(execFile),root=resolve(import.meta.dirname,'../..'),base=join(homedir(),'.hb');
 const args=process.argv.slice(2), address=args[args.indexOf('--address')+1];
@@ -50,11 +51,11 @@ const {chmod}=await import('node:fs/promises');
 for(const kind of ['codex','claude','pi']){
  await chmod(join(root,'dist/scripts/'+kind+'-proxy.js'),0o755);
  const quote=(s:string)=>"'"+s.replaceAll("'","'\\''")+"'";
- const script='#!/bin/sh\nexport HERDR_BRIDGE_CONFIG='+quote(file)+'\nexport PATH='+quote(dirname(process.execPath))+':"$PATH"\nexec '+quote(process.execPath)+' '+quote(join(root,'dist/scripts/bridge-entry.js'))+' '+kind+' "$@"\n';
+ const script='#!/bin/sh\nexport HERDR_BRIDGE_CONFIG='+quote(file)+'\nexport PATH='+quote(dirname(nodeExecutable))+':"$PATH"\nexec '+quote(nodeExecutable)+' '+quote(join(root,'dist/scripts/bridge-entry.js'))+' '+kind+' "$@"\n';
  await writeFile(join(base,'bin',kind),script,{mode:0o700});
 }
 const q=(s:string)=>"'"+s.replaceAll("'","'\\''")+"'";
-await writeFile(join(base,'bin/hb'),'#!/bin/sh\nexport HERDR_BRIDGE_CONFIG='+q(file)+'\nexport HERDR_BRIDGE_BASE='+q(base)+'\nexec '+q(process.execPath)+' '+q(join(root,'dist/scripts/open.js'))+' "$@"\n',{mode:0o700});
+await writeFile(join(base,'bin/hb'),'#!/bin/sh\nexport HERDR_BRIDGE_CONFIG='+q(file)+'\nexport HERDR_BRIDGE_BASE='+q(base)+'\nexec '+q(nodeExecutable)+' '+q(join(root,'dist/scripts/open.js'))+' "$@"\n',{mode:0o700});
 await mkdir(join(homedir(),'.local/bin'),{recursive:true});
 try{await symlink(join(base,'bin/hb'),join(homedir(),'.local/bin/hb'));}catch(error){if((error as NodeJS.ErrnoException).code!=='EEXIST')throw error;}
 await symlink('hb',join(base,'bin/herdeo'));
@@ -74,7 +75,7 @@ if(process.platform==='darwin'){
  for(const mode of ['herdr','paseo']){
   const label='dev.herdr-paseo.'+mode;
   const plist='<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"><plist version="1.0"><dict>'+
-   '<key>Label</key><string>'+label+'</string><key>ProgramArguments</key><array>'+[process.execPath,join(root,'dist/scripts/service.js'),mode].map(s=>'<string>'+escape(s)+'</string>').join('')+'</array>'+
+   '<key>Label</key><string>'+label+'</string><key>ProgramArguments</key><array>'+[nodeExecutable,join(root,'dist/scripts/service.js'),mode].map(s=>'<string>'+escape(s)+'</string>').join('')+'</array>'+
    '<key>EnvironmentVariables</key><dict><key>HERDR_BRIDGE_CONFIG</key><string>'+escape(file)+'</string><key>HERDR_BRIDGE_BASE</key><string>'+escape(base)+'</string></dict>'+
    '<key>WorkingDirectory</key><string>'+escape(base)+'</string><key>RunAtLoad</key><true/><key>KeepAlive</key><true/><key>StandardOutPath</key><string>'+escape(join(base,'logs',mode+'.log'))+'</string><key>StandardErrorPath</key><string>'+escape(join(base,'logs',mode+'.log'))+'</string></dict></plist>';
   const target=join(homedir(),'Library/LaunchAgents',label+'.plist');await writeFile(target,plist,{mode:0o600});
@@ -83,7 +84,7 @@ if(process.platform==='darwin'){
 }else if(process.platform==='linux'){
  const folder=join(homedir(),'.config/systemd/user');await mkdir(folder,{recursive:true});
  for(const mode of ['herdr','paseo']){
-  const unit='[Unit]\nDescription=Shared Herdr Paseo '+mode+'\n[Service]\nType=simple\nEnvironment=HERDR_BRIDGE_CONFIG='+file+'\nEnvironment=HERDR_BRIDGE_BASE='+base+'\nExecStart='+JSON.stringify(process.execPath)+' '+JSON.stringify(join(root,'dist/scripts/service.js'))+' '+mode+'\nWorkingDirectory='+base+'\nRestart=on-failure\nRestartSec=3\n[Install]\nWantedBy=default.target\n';
+  const unit='[Unit]\nDescription=Shared Herdr Paseo '+mode+'\n[Service]\nType=simple\nEnvironment=HERDR_BRIDGE_CONFIG='+file+'\nEnvironment=HERDR_BRIDGE_BASE='+base+'\nExecStart='+JSON.stringify(nodeExecutable)+' '+JSON.stringify(join(root,'dist/scripts/service.js'))+' '+mode+'\nWorkingDirectory='+base+'\nRestart=on-failure\nRestartSec=3\n[Install]\nWantedBy=default.target\n';
   await writeFile(join(folder,'herdr-paseo-'+mode+'.service'),unit,{mode:0o600});
  }
  await execute('systemctl',['--user','daemon-reload']);
