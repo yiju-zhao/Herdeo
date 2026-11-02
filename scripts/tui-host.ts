@@ -5,6 +5,7 @@ import {mkdir,writeFile,readFile,unlink} from 'node:fs/promises';
 import {join,dirname} from 'node:path';
 import {randomUUID} from 'node:crypto';
 import {readConfig,bridgeRuntime,inScope} from '../server/config.js';
+import {nodeExecutable} from '../server/node-path.js';
 import {readJsonLines} from '../server/jsonl.js';
 import {NativeTuiState} from '../server/tui-state.js';
 import {saveTuiSession,type TuiSession,type TuiKind,tuiFile} from '../server/tui-session.js';
@@ -141,11 +142,11 @@ const server=createServer(client=>{
 });
 await new Promise<void>((done,fail)=>{server.once('error',fail);server.listen(socketPath,done);});
 await (await import('node:fs/promises')).chmod(socketPath,0o600);await saveTuiSession(cfg,state);
-const env:NodeJS.ProcessEnv={...process.env,HERDR_BRIDGE_TUI_SOCKET:socketPath,HERDR_BRIDGE_NODE:process.execPath,HERDR_BRIDGE_PACKAGE_ROOT:cfg.packageRoot};
+const env:NodeJS.ProcessEnv={...process.env,HERDR_BRIDGE_TUI_SOCKET:socketPath,HERDR_BRIDGE_NODE:nodeExecutable,HERDR_BRIDGE_PACKAGE_ROOT:cfg.packageRoot};
 for(const key of ['CLAUDECODE','CLAUDE_CODE_SESSION_ID','CODEX_THREAD_ID'])delete env[key];
 let nativeArgs=[...args];
 if(kind==='claude'){
- const mcp=join(folder,'mcp.json');await writeFile(mcp,JSON.stringify({mcpServers:{paseo_native_bridge:{command:process.execPath,args:[join(cfg.packageRoot,'dist/scripts/claude-tui-channel.js')],env:{HERDR_BRIDGE_TUI_SOCKET:socketPath}}}}),{mode:0o600});
+ const mcp=join(folder,'mcp.json');await writeFile(mcp,JSON.stringify({mcpServers:{paseo_native_bridge:{command:nodeExecutable,args:[join(cfg.packageRoot,'dist/scripts/claude-tui-channel.js')],env:{HERDR_BRIDGE_TUI_SOCKET:socketPath}}}}),{mode:0o600});
  nativeArgs.push('--plugin-dir',join(cfg.packageRoot,'plugins/claude-native'),'--mcp-config',mcp,'--dangerously-load-development-channels','server:paseo_native_bridge');
 }else nativeArgs.push('--extension',join(cfg.packageRoot,'dist/scripts/pi-tui-extension.js'));
 cli=spawn(kind==='claude'?cfg.launch.claudeCommand!:cfg.launch.piCommand!,nativeArgs,{env,cwd:state.cwd,stdio:'inherit'});

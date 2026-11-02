@@ -3,6 +3,7 @@ import { promisify } from 'node:util';
 import { readFile } from 'node:fs/promises';
 import { join, resolve, dirname } from 'node:path';
 import { readConfig } from '../server/config.js';
+import { nodeExecutable } from '../server/node-path.js';
 import { diagnose, formatDiagnostics } from '../server/diagnostics.js';
 import { productName, version } from '../server/version.js';
 
@@ -50,7 +51,7 @@ if(process.argv[2]==='connection'){
  const execute=promisify(execFile);const created=JSON.parse((await execute(executables.herdr,['workspace','create','--cwd',cwd,'--label',kind!,'--no-focus'],{env})).stdout);
  const pane=created.result.root_pane.pane_id;
  const quote=(s:string)=>"'"+s.replaceAll("'","'\\''")+"'";
- const command=[...(frontend?['env','HERDR_BRIDGE_TERMINAL_UI='+frontend]:[]),process.execPath,join(config.packageRoot,'dist/scripts/bridge-entry.js'),kind!,...args];
+ const command=[...(frontend?['env','HERDR_BRIDGE_TERMINAL_UI='+frontend]:[]),nodeExecutable,join(config.packageRoot,'dist/scripts/bridge-entry.js'),kind!,...args];
  await execute(executables.herdr,['pane','run',pane,command.map(quote).join(' ')],{env});
  console.log(JSON.stringify({pane,provider:kind,frontend:frontend??config.terminalFrontend,endpoint:config.paseoUrl}));
 } else if(!command&&process.env.HERDR_ENV==='1'){

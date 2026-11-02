@@ -5,6 +5,7 @@ import type {BridgeConfig} from './config.js';
 import {bridgeRuntime,inScope,configurationFile} from './config.js';
 import {transport,type HerdrTransport} from './herdr.js';
 import {readJsonLines} from './jsonl.js';
+import {nodeExecutable} from './node-path.js';
 import {execFile} from 'node:child_process';
 import {promisify} from 'node:util';
 import {setTimeout as delay} from 'node:timers/promises';
@@ -94,7 +95,7 @@ export async function launchTuiSession(cfg:BridgeConfig,kind:TuiKind,cwd:string,
  const created=JSON.parse((await execute('herdr',['workspace','create','--cwd',cwd,'--label',kind==='claude'?'Claude Code':'Pi','--no-focus'],{env})).stdout);
  const key=(await import('node:crypto')).randomUUID(),pane=created.result.root_pane.pane_id;
  const q=(s:string)=>"'"+s.replaceAll("'","'\\''")+"'";
- const args=['env','HERDR_BRIDGE_CONFIG='+configurationFile(cfg),'HERDR_BRIDGE_TUI_KEY='+key,'HERDR_BRIDGE_TUI_REGISTER='+(options.autoRegister===false?'0':'1'),process.execPath,join(cfg.packageRoot,'dist/scripts/tui-host.js'),kind];
+ const args=['env','HERDR_BRIDGE_CONFIG='+configurationFile(cfg),'HERDR_BRIDGE_TUI_KEY='+key,'HERDR_BRIDGE_TUI_REGISTER='+(options.autoRegister===false?'0':'1'),nodeExecutable,join(cfg.packageRoot,'dist/scripts/tui-host.js'),kind];
  if(options.model&&!(kind==='claude'&&options.model==='native'))args.push('--model',options.model);if(options.mode&&kind==='claude')args.push('--permission-mode',options.mode);
  await execute('herdr',['pane','run',pane,args.map(q).join(' ')],{env});
  for(let i=0;i<100;i++){try{return await loadTuiSession(cfg,key);}catch(error){if((error as NodeJS.ErrnoException).code!=='ENOENT')throw error;await delay(100);}}

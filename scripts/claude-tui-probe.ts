@@ -8,6 +8,7 @@ import {randomUUID} from 'node:crypto';
 import {promisify} from 'node:util';
 import {readJsonLines} from '../server/jsonl.js';
 import {readConfig,bridgeRuntime} from '../server/config.js';
+import {nodeExecutable} from '../server/node-path.js';
 
 const cfg=readConfig(),base=join(homedir(),'.hb');
 if(process.argv[2]==='serve'){
@@ -49,13 +50,13 @@ if(process.argv[2]==='serve'){
  const id=randomUUID().slice(0,8),folder=join(base,'probes','claude-tui-'+id),socket=join(bridgeRuntime(cfg),'tui-'+id+'.sock');
  await mkdir(folder,{recursive:true,mode:0o700});
  const log=await open(join(folder,'probe.log'),'a',0o600);
- const broker=spawn(process.execPath,[join(cfg.packageRoot,'dist/scripts/claude-tui-probe.js'),'serve',socket,folder],{env:process.env,stdio:['ignore',log.fd,log.fd],detached:true});broker.unref();await log.close();
+ const broker=spawn(nodeExecutable,[join(cfg.packageRoot,'dist/scripts/claude-tui-probe.js'),'serve',socket,folder],{env:process.env,stdio:['ignore',log.fd,log.fd],detached:true});broker.unref();await log.close();
  const q=(s:string)=>"'"+s.replaceAll("'","'\\''")+"'";
- const hookCommand=[process.execPath,join(cfg.packageRoot,'dist/scripts/claude-tui-hook.js')].map(q).join(' ');
+ const hookCommand=[nodeExecutable,join(cfg.packageRoot,'dist/scripts/claude-tui-hook.js')].map(q).join(' ');
  const hooks=Object.fromEntries(['SessionStart','UserPromptSubmit','MessageDisplay','Stop','PermissionDenied','PostToolUse'].map(event=>[event,[{hooks:[{type:'command',command:hookCommand,timeout:2}]}]]));
  await writeFile(join(folder,'settings.json'),JSON.stringify({hooks},null,2)+'\n',{mode:0o600});
  const name='paseo_native_probe';
- await writeFile(join(folder,'mcp.json'),JSON.stringify({mcpServers:{[name]:{command:process.execPath,args:[join(cfg.packageRoot,'dist/scripts/claude-tui-channel.js')],env:{HERDR_BRIDGE_TUI_SOCKET:socket}}}},null,2)+'\n',{mode:0o600});
+ await writeFile(join(folder,'mcp.json'),JSON.stringify({mcpServers:{[name]:{command:nodeExecutable,args:[join(cfg.packageRoot,'dist/scripts/claude-tui-channel.js')],env:{HERDR_BRIDGE_TUI_SOCKET:socket}}}},null,2)+'\n',{mode:0o600});
  const execute=promisify(execFile),bins=JSON.parse(await readFile(join(base,'executables.json'),'utf8'));
  const env:NodeJS.ProcessEnv={...process.env,HERDR_ENV:'1',HERDR_SOCKET_PATH:cfg.herdr[0]!.socket};
  for(const key of ['HERDR_PANE_ID','HERDR_WORKSPACE_ID','HERDR_TAB_ID'])delete env[key];
